@@ -7,6 +7,9 @@ import 'package:google_fonts/google_fonts.dart';
 //animated text
 import 'package:animated_text_kit/animated_text_kit.dart';
 
+//checking for internet connectivity
+import 'package:connectivity_plus/connectivity_plus.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -18,13 +21,14 @@ class _HomeScreenState extends State<HomeScreen> {
   //Text Editing Controller
   TextEditingController textController = TextEditingController();
   //Result text
-  String resultText = "Enter A Number";
+  String? resultText = "Enter A Number";
 
   //Animated Container
   double boxHeight = 100;
   double boxWidth = 300;
   var boxColor = Colors.deepPurple;
 
+  //Function to expand the Container
   void expand() {
     setState(() {
       boxHeight = 300;
@@ -32,7 +36,22 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  //Function to Handle Runtime errors
+  //Function to change the Container color
+  void changeBoxColor(value) {
+    setState(() {
+      boxColor = value;
+    });
+  }
+
+  //Function to check connectivity
+  Future<bool> _checkInternetConnectivity() async {
+    var connectivityResult = await (Connectivity().checkConnectivity());
+    if (connectivityResult == ConnectivityResult.none) {
+      return false;
+    } else {
+      return true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,65 +66,93 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       body: SafeArea(
-        child: Expanded(
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            //Animated Container
-            Center(
-              child: AnimatedContainer(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                    color: boxColor, borderRadius: BorderRadius.circular(20)),
-                duration: const Duration(seconds: 1),
-                height: boxHeight,
-                width: boxWidth,
-                child: Text(
-                  resultText,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 25.0,
-                  ),
-                ),
-                // child: AnimatedTextKit(animatedTexts: [
-                //   TyperAnimatedText(resultText,
-                //       textStyle: const TextStyle(
-                //         color: Colors.white,
-                //         fontSize: 25.0,
-                //         fontFamily: 'Canterbury',
-                //       ))
-                // ]),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          //Animated Container
+          AnimatedContainer(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+                color: boxColor, borderRadius: BorderRadius.circular(20)),
+            duration: const Duration(seconds: 1),
+            alignment: const Alignment(0, 0),
+            height: boxHeight,
+            width: boxWidth,
+            child: Text(
+              resultText!,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 25.0,
               ),
             ),
-            SizedBox(
-              height: 100,
+            // child: AnimatedTextKit(animatedTexts: [
+            //   TyperAnimatedText(resultText,
+            //       textStyle: const TextStyle(
+            //         color: Colors.white,
+            //         fontSize: 25.0,
+            //         fontFamily: 'Canterbury',
+            //       ))
+            // ]),
+          ),
+          const SizedBox(
+            height: 100,
+          ),
+          //TextField
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+            child: TextFormField(
+              keyboardType: TextInputType.number,
+              controller: textController,
+              decoration: InputDecoration(
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20))),
             ),
-            //TextField
-            Padding(
-              padding: EdgeInsets.fromLTRB(20, 10, 20, 10),
-              child: TextFormField(
-                keyboardType: TextInputType.number,
-                controller: textController,
-                decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20))),
-              ),
-            ),
-
-            //button
-            ElevatedButton(
-                onPressed: () async {
-                  int number = int.parse(textController.text);
-                  final result = await getNumberFact(num: number);
+          ),
+          const SizedBox(
+            height: 30,
+          ),
+          //button
+          ElevatedButton(
+              onPressed: () async {
+                //Checking for Connectivity
+                if (await _checkInternetConnectivity() == false) {
                   setState(() {
-                    resultText = (result != null)
-                        ? result
-                        : "No Data Found,\nPlease Type Another Number";
-                    print(resultText);
+                    resultText = "No Internet Connectivity";
+                    changeBoxColor(Colors.pink);
                     expand();
                   });
-                },
-                child: const Text("Get Fact"))
-          ]),
-        ),
+                } else if (textController.text.isEmpty) {
+                  setState(() {
+                    changeBoxColor(Colors.deepPurple);
+                    resultText = "Please Enter a Number";
+
+                    expand();
+                  });
+                } else if (textController.text.contains(".")) {
+                  setState(() {
+                    resultText = "Please Enter Integers Only";
+                    changeBoxColor(Colors.deepPurple);
+                    expand();
+                  });
+                } else {
+                  int number = int.parse(textController.text);
+                  final result = await getNumberFact(num: number);
+
+                  setState(() {
+                    resultText = result;
+                    changeBoxColor(Colors.deepPurple);
+                    expand();
+                  });
+                }
+
+                // setState(() {
+                //   resultText = (result != null)
+                //       ? result
+                //       : "No Data Found,\nPlease Type Another Number";
+                //   print(resultText);
+                //   expand();
+                // });
+              },
+              child: const Text("Get Fact"))
+        ]),
       ),
     );
   }
